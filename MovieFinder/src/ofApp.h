@@ -1,6 +1,13 @@
 #pragma once
 
 #include "ofMain.h"
+#include <vector>
+
+struct filter {
+	int id = -1;
+	string filterName = "";
+	bool isActive = false;
+};
 
 class ofApp : public ofBaseApp{
 
@@ -26,4 +33,10 @@ class ofApp : public ofBaseApp{
 		ofTrueTypeFont movieName, movieYear;
 
 		bool isSplashScreen;
+
+		ofJson apiContainers;
+
+		vector<filter> currentFilters;
+
+		void getApi(int queryType);
 };
