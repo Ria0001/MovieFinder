@@ -16,8 +16,14 @@ void ofApp::setup(){
 
 	isSplashScreen = true;
 
-	getApi(0);
-	//3c18e906d6224567a2654c5ed4e26b85
+	currentFilters.push_back({-1, "Movies", true});
+	currentFilters[0].box.set(33, 97, 151, 28);
+	currentFilters.push_back({-1, "TV Shows", false /* unused bool uses movies bool */});
+	currentFilters[1].box.set(184, 97, 151, 28);
+
+	getApi(0); //3c18e906d6224567a2654c5ed4e26b85
+	
+
 }
 
 //--------------------------------------------------------------
@@ -50,7 +56,7 @@ void ofApp::draw(){
 	ofColor rightCol = blue;
 	ofColor rightFont = (255);
 
-	if (!currentFilters[0].isActive) {
+	if (currentFilters[0].isActive) {
 		leftCol = blue;
 		leftFont = (255);
 
@@ -58,17 +64,27 @@ void ofApp::draw(){
 		rightFont = (0);
 	}
 	ofSetColor(leftCol);
-	ofDrawRectangle(33, 97, 151, 28);
+	ofDrawRectangle(currentFilters[0].box);
 	ofSetColor(leftFont);
 	movieYear.drawString(currentFilters[0].filterName, 83, 118);
 
 	ofSetColor(rightCol);
-	ofDrawRectangle(184, 97, 151, 28);
+	ofDrawRectangle(currentFilters[1].box);
 	ofSetColor(rightFont);
 	movieYear.drawString(currentFilters[1].filterName, 227, 118);
 
+	int currentX = 33, defaultX = 33, currentY = 135, defaultY = 135, paddingX = 10, paddingY = 5;
+	for (int i = 2; i < currentFilters.size(); i++)	{
+		ofVec2f getSize = movieYear.getStringBoundingBox(currentFilters[2].filterName, 0, 0+movieYear.getLineHeight()).getBottomRight();
 
-	ofSetColor(lightblue);
+		ofSetColor(blue);
+		ofDrawRectRounded(currentX, currentY, getSize.x + paddingX*2, getSize.y + paddingY*2, 5);
+		ofSetColor(255);
+		movieYear.drawString(currentFilters[2].filterName, currentX + paddingX, currentY + movieYear.stringHeight("Yy") + paddingY);
+	}
+	//cout << movieYear.getStringBoundingBox(currentFilters[2].filterName, 0, movieYear.getLineHeight(), false).getBottomRight() << endl;
+
+	ofSetColor(lightblue); // search button
 	ofDrawRectRounded(97, 645, 175, 43, 5);
 	searchText.draw(125, 655, 116, 24);
 
@@ -89,32 +105,31 @@ void ofApp::draw(){
 
 void ofApp::getApi(int queryType) {
 	string apiBaseUrl = "https://api.themoviedb.org/3/", apiSearchMode = "discover/", apiSearchType = "multi", apiKey = "?api_key=3c18e906d6224567a2654c5ed4e26b85";
-	filter temp;
 
 	switch (queryType) {
 	case 0: //Get filters
-		//temp.id = -1; // default
-		temp.filterName = "Movies";
-		temp.isActive = true;
-		currentFilters.push_back(temp);
+		if (currentFilters.size() > 2) //reset array but preserve the first two elements
+			currentFilters.resize(2);
 
-		temp.filterName = "TV shows";
-		currentFilters.push_back(temp);
+		if (currentFilters[0].isActive == true) apiBaseUrl = "https://api.themoviedb.org/3/genre/movie/list" + apiKey;
+		else apiBaseUrl = "https://api.themoviedb.org/3/genre/tv/list" + apiKey;
 
-		for (int i = 0; i < 2; i++) {
-			if (i == 0) apiBaseUrl = "https://api.themoviedb.org/3/genre/movie/list" + apiKey;
-			else "https://api.themoviedb.org/3/genre/tv/list" + apiKey;
+		apiContainers = ofJson::parse(ofLoadURL(apiBaseUrl).data);
 
-			apiContainers = ofJson::parse(ofLoadURL(apiBaseUrl).data);
-
-			if (!apiContainers.empty()) {
-				for (int j = 0; j < apiContainers["genres"].size(); j++) {
-					temp.id = apiContainers["genres"][j]["id"].get<int>();
-					temp.filterName = apiContainers["genres"][j]["name"].get<string>();
-					currentFilters.push_back(temp);
-				}
+		if (!apiContainers.empty()) {
+			for (int j = 0; j < apiContainers["genres"].size(); j++) {
+				currentFilters.push_back({ //store genres
+					apiContainers["genres"][j]["id"].get<int>(),
+					apiContainers["genres"][j]["name"].get<string>(),
+					false
+					});
+				currentFilters[currentFilters.size() - 1].box.set(0, 0, 0, 0);
 			}
-			else { cout << "API error" << "\n"; }
+		}
+		else { cout << "API error" << "\n"; }
+			
+		for (auto i : currentFilters) {
+			cout << i.filterName << "\t\t\t\t" << i.id << "\t\t\t\t" << i.isActive << "\n";
 		}
 		break;
 	default:
@@ -145,7 +160,21 @@ void ofApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
+	for (size_t i = 0; i < currentFilters.size(); i++)	{
+		if (currentFilters[i].box.inside(x, y) == true) {
 
+			if (i == 0 || i == 1) { //special case for movies (0) and TV shows (1) toggle
+				if (i == 0 && currentFilters[0].isActive) currentFilters[0].isActive = false;
+				else if (i == 1 && !currentFilters[0].isActive) currentFilters[0].isActive = true;
+				continue;
+			}
+
+			if (currentFilters[i].isActive) currentFilters[i].isActive = false;
+			else currentFilters[i].isActive = true;
+
+			continue;
+		}
+	}
 }
 
 //--------------------------------------------------------------

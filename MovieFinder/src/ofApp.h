@@ -7,6 +7,7 @@ struct filter {
 	int id = -1;
 	string filterName = "";
 	bool isActive = false;
+	ofRectangle box;
 };
 
 class ofApp : public ofBaseApp{
